@@ -23,6 +23,13 @@ python -m pip install -e ".[dev]"
 pytest
 ```
 
+Optional census workflow dependencies are split out:
+
+```bash
+python -m pip install ".[canada]"  # pycancensus + GeoPandas
+python -m pip install ".[us]"      # census + us + GeoPandas
+```
+
 ## Quick Start
 
 ```python
@@ -52,3 +59,14 @@ This initial scaffold focuses on the validated mathematical core:
 Geospatial plotting and richer visualization helpers will be layered on top of
 this core.
 
+## Census Examples
+
+The `examples/` directory includes API-backed workflows that are not run during
+tests:
+
+* `canadian_census_pycancensus.py` mirrors the corrected cancensus examples with
+  `pycancensus`, modeling rates directly with `uniform`, `gaussian`, and
+  `sampled` models.
+* `us_census_census.py` shows the same rate-distribution pattern with the
+  Python `census` package. `cenpy` and `censusdis` are also viable U.S. Census
+  options, but they are not core dependencies here.

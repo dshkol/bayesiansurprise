@@ -39,6 +39,15 @@ dev = [
 geo = [
   "geopandas>=0.13",
 ]
+canada = [
+  "pycancensus>=0.1.0",
+  "geopandas>=0.13",
+]
+us = [
+  "census>=0.8.26",
+  "us>=3.2",
+  "geopandas>=0.13",
+]
 
 [project.urls]
 Homepage = "https://github.com/dshkol/bayesiansurprise"

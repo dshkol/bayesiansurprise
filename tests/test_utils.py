@@ -1,0 +1,40 @@
+import numpy as np
+import pytest
+
+import bayesiansurprise as bs
+
+
+def test_normalize_prob_sums_to_one():
+    x = np.array([1, 2, 3, 4])
+    np.testing.assert_allclose(bs.normalize_prob(x), x / x.sum())
+
+
+def test_normalize_prob_handles_zero_vector():
+    np.testing.assert_allclose(bs.normalize_prob([0, 0, 0, 0]), [0.25, 0.25, 0.25, 0.25])
+
+
+def test_normalize_prob_warns_on_negative_values():
+    with pytest.warns(RuntimeWarning, match="Negative"):
+        result = bs.normalize_prob([-1, 2, 3])
+    assert result[0] == 0
+
+
+def test_normalize_rate_computes_rates():
+    result = bs.normalize_rate([50, 100, 200], [10000, 50000, 100000], per=100000)
+    np.testing.assert_allclose(result, [500, 200, 200])
+
+
+def test_normalize_rate_handles_zero_base():
+    result = bs.normalize_rate([50, 100], [10000, 0])
+    assert np.isnan(result[1])
+
+    result_no_na = bs.normalize_rate([50, 100], [10000, 0], na_for_zero=False)
+    assert result_no_na[1] == 0
+
+
+def test_funnel_pvalue_is_symmetric_and_bounded():
+    p = bs.funnel_pvalue([-2, -1, 0, 1, 2])
+    assert np.all((p >= 0) & (p <= 1))
+    assert p[2] == pytest.approx(1)
+    assert p[0] == pytest.approx(p[4])
+

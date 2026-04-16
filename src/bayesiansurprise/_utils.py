@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 
 import numpy as np
+import pandas as pd
 from scipy.stats import norm
 
 
@@ -73,3 +74,71 @@ def funnel_pvalue(z) -> np.ndarray:
     z_arr = as_numeric_array(z, name="z")
     return 2 * norm.sf(np.abs(z_arr))
 
+
+def compute_funnel_data(
+    observed,
+    sample_size,
+    *,
+    target_rate: float | None = None,
+    kind: str = "count",
+    limits=(2, 3),
+) -> pd.DataFrame:
+    """Compute funnel diagnostic data.
+
+    This diagnostic is separate from Bayesian Surprise scoring. With
+    ``kind="count"``, ``observed`` is interpreted as event counts and
+    ``sample_size`` as the denominator. With ``kind="proportion"``,
+    ``observed`` is interpreted as rates or proportions on [0, 1].
+    """
+
+    observed_arr = as_numeric_array(observed, name="observed")
+    sample_arr = as_numeric_array(sample_size, name="sample_size")
+    if observed_arr.size != sample_arr.size:
+        raise ValueError("observed and sample_size must have the same length.")
+    if kind not in {"count", "proportion"}:
+        raise ValueError("kind must be 'count' or 'proportion'.")
+    if np.any(sample_arr < 0):
+        raise ValueError("sample_size must be non-negative.")
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        if kind == "count":
+            observed_rate = observed_arr / sample_arr
+            inferred_rate = np.nansum(observed_arr) / np.nansum(sample_arr)
+            expected = sample_arr * (target_rate if target_rate is not None else inferred_rate)
+        else:
+            observed_rate = observed_arr
+            inferred_rate = np.nansum(observed_arr * sample_arr) / np.nansum(sample_arr)
+            expected = np.full(observed_arr.size, target_rate if target_rate is not None else inferred_rate)
+
+    rate = float(target_rate if target_rate is not None else inferred_rate)
+    if not np.isfinite(rate) or not 0 <= rate <= 1:
+        raise ValueError("target_rate must be a finite value on [0, 1].")
+
+    p = np.clip(rate, 0.001, 0.999)
+    rate_se = np.sqrt(p * (1 - p) / sample_arr)
+    count_se = rate_se * sample_arr
+    se = count_se if kind == "count" else rate_se
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        z_score = (observed_rate - rate) / rate_se
+    z_score[~np.isfinite(z_score)] = 0
+
+    result = pd.DataFrame(
+        {
+            "observed": observed_arr,
+            "sample_size": sample_arr,
+            "rate": observed_rate,
+            "expected": expected,
+            "expected_rate": np.full(observed_arr.size, rate),
+            "se": se,
+            "rate_se": rate_se,
+            "z_score": z_score,
+        }
+    )
+    for limit in limits:
+        label = f"{limit:g}sd"
+        result[f"lower_{label}"] = expected - float(limit) * se
+        result[f"upper_{label}"] = expected + float(limit) * se
+        result[f"lower_{label}_rate"] = rate - float(limit) * rate_se
+        result[f"upper_{label}_rate"] = rate + float(limit) * rate_se
+    return result

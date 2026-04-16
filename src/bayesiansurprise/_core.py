@@ -180,6 +180,39 @@ def surprise(
     return result
 
 
+def get_surprise(data, kind: str = "surprise"):
+    """Extract surprise values from a result object or augmented DataFrame."""
+
+    if isinstance(data, SurpriseResult):
+        if kind == "surprise":
+            return data.surprise
+        if kind in {"signed", "signed_surprise"}:
+            return data.signed_surprise
+        raise ValueError("kind must be 'surprise', 'signed', or 'signed_surprise'.")
+    if isinstance(data, pd.DataFrame):
+        column = "signed_surprise" if kind == "signed" else kind
+        if column not in data:
+            raise ValueError(f"Column {column!r} not found in data.")
+        return data[column].to_numpy()
+    raise TypeError("data must be a SurpriseResult or pandas DataFrame.")
+
+
+def get_signed_surprise(data):
+    """Extract signed surprise values from a result object or augmented DataFrame."""
+
+    return get_surprise(data, "signed_surprise")
+
+
+def get_surprise_result(data) -> SurpriseResult:
+    """Return the stored SurpriseResult from an augmented DataFrame."""
+
+    if isinstance(data, SurpriseResult):
+        return data
+    if isinstance(data, pd.DataFrame) and "surprise_result" in data.attrs:
+        return data.attrs["surprise_result"]
+    raise ValueError("No SurpriseResult is attached to data.")
+
+
 def auto_surprise(
     observed,
     expected=None,
@@ -209,4 +242,3 @@ def auto_surprise(
         return_signed=signed,
         normalize_posterior=normalize_posterior,
     )
-

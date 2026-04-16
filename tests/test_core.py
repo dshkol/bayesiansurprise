@@ -86,8 +86,22 @@ def test_surprise_augments_pandas_dataframe():
     assert "surprise_result" in out.attrs
 
 
+def test_result_accessors_work_for_augmented_dataframe():
+    data = pd.DataFrame(
+        {
+            "events": [50, 100, 150, 200],
+            "population": [10000, 50000, 100000, 25000],
+        }
+    )
+
+    out = bs.surprise(data, observed="events", expected="population")
+
+    np.testing.assert_allclose(bs.get_surprise(out), out["surprise"])
+    np.testing.assert_allclose(bs.get_signed_surprise(out), out["signed_surprise"])
+    assert isinstance(bs.get_surprise_result(out), bs.SurpriseResult)
+
+
 def pytest_approx(value):
     import pytest
 
     return pytest.approx(value)
-

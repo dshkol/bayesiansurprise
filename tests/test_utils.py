@@ -38,3 +38,35 @@ def test_funnel_pvalue_is_symmetric_and_bounded():
     assert p[2] == pytest.approx(1)
     assert p[0] == pytest.approx(p[4])
 
+
+def test_compute_funnel_data_returns_rate_scale_bands_for_counts():
+    observed = np.array([50, 100, 150])
+    sample_size = np.array([10000, 50000, 100000])
+
+    out = bs.compute_funnel_data(observed, sample_size)
+
+    target_rate = observed.sum() / sample_size.sum()
+    expected = sample_size * target_rate
+    rate_se = np.sqrt(target_rate * (1 - target_rate) / sample_size)
+
+    np.testing.assert_allclose(out["rate"], observed / sample_size)
+    np.testing.assert_allclose(out["expected"], expected)
+    np.testing.assert_allclose(out["expected_rate"], target_rate)
+    np.testing.assert_allclose(out["rate_se"], rate_se)
+    np.testing.assert_allclose(out["lower_2sd_rate"], target_rate - 2 * rate_se)
+    np.testing.assert_allclose(out["upper_3sd_rate"], target_rate + 3 * rate_se)
+
+
+def test_compute_funnel_data_accepts_proportion_observations():
+    observed_rate = np.array([0.05, 0.02, 0.015])
+    sample_size = np.array([1000, 2000, 4000])
+
+    out = bs.compute_funnel_data(observed_rate, sample_size, kind="proportion")
+
+    target_rate = np.sum(observed_rate * sample_size) / sample_size.sum()
+    rate_se = np.sqrt(target_rate * (1 - target_rate) / sample_size)
+
+    np.testing.assert_allclose(out["observed"], observed_rate)
+    np.testing.assert_allclose(out["expected"], target_rate)
+    np.testing.assert_allclose(out["se"], rate_se)
+    np.testing.assert_allclose(out["z_score"], (observed_rate - target_rate) / rate_se)

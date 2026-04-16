@@ -26,6 +26,7 @@ pytest
 Optional census workflow dependencies are split out:
 
 ```bash
+python -m pip install ".[geo]"     # GeoPandas plotting workflows
 python -m pip install ".[canada]"  # pycancensus + GeoPandas
 python -m pip install ".[us]"      # census + us + GeoPandas
 ```
@@ -55,9 +56,16 @@ This initial scaffold focuses on the validated mathematical core:
 * normalized per-observation Bayesian Surprise
 * explicit legacy unnormalized scoring mode for comparison
 * pandas-friendly tabular workflows
+* GeoPandas-preserving surprise workflows
+* rate-scale funnel diagnostics for sample-size context
 
-Geospatial plotting and richer visualization helpers will be layered on top of
-this core.
+```python
+funnel = bs.compute_funnel_data(
+    observed=df["events"],
+    sample_size=df["population"],
+)
+bs.plot_funnel(funnel)
+```
 
 ## Census Examples
 
